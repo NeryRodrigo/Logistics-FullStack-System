@@ -1,0 +1,16 @@
+# .NET (Backend)
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
+# Node / React / Mobile
+**/node_modules/
+**/dist/
+.expo/
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

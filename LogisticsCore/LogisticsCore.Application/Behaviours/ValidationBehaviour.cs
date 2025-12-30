@@ -1,0 +1,43 @@
+﻿using FluentValidation;
+using MediatR;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogisticsCore.Application.Behaviours
+{
+    // Esto intercepta CUALQUIER comando antes de ejecutarse
+    public class ValidationBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+        where TRequest : IRequest<TResponse>
+    {
+        private readonly IEnumerable<IValidator<TRequest>> _validators;
+
+        public ValidationBehaviour(IEnumerable<IValidator<TRequest>> validators)
+        {
+            _validators = validators;
+        }
+
+        public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        {
+            if (_validators.Any())
+            {
+                var context = new ValidationContext<TRequest>(request);
+
+                // Ejecuta todas las reglas de validación que encuentre para este comando
+                var validationResults = await Task.WhenAll(_validators.Select(v => v.ValidateAsync(context, cancellationToken)));
+                var failures = validationResults.SelectMany(r => r.Errors).Where(f => f != null).ToList();
+
+                if (failures.Count != 0)
+                {
+                    // Si hay errores, lanza una excepción (MediatR detiene el proceso aquí)
+                    throw new ValidationException(failures);
+                }
+            }
+
+            // Si todo está bien, continúa hacia el Handler
+            return await next();
+        }
+    }
+}
